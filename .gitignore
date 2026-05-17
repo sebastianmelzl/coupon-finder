@@ -29,5 +29,8 @@ Thumbs.db
 .vscode/
 .idea/
 
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
 # Vercel / Railway
 .vercel
