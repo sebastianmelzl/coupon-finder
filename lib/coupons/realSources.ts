@@ -2,7 +2,6 @@ import { CouponCandidate } from '../types';
 import { scrapeAllCouponSites } from './scrapers/couponSites';
 import { analyzeShopPage } from './scrapers/shopPageAnalyzer';
 import { searchWebForCoupons } from './scrapers/webSearch';
-import { generatePatternCandidates } from './scrapers/patternGenerator';
 
 export interface RealSourceResult {
   candidates: CouponCandidate[];
@@ -27,13 +26,11 @@ export async function fetchFromRealSources(
   const fromSites = siteResults.status === 'fulfilled' ? siteResults.value : [];
   const fromShopPage = shopPageResults.status === 'fulfilled' ? shopPageResults.value : [];
   const fromWebSearch = webSearchResults.status === 'fulfilled' ? webSearchResults.value : [];
-  const fromPatterns = generatePatternCandidates(domain, shopName);
 
   const allCandidates = [
-    ...fromShopPage,   // highest priority — from the shop itself
-    ...fromSites,      // coupon aggregators
-    ...fromWebSearch,  // web search snippets
-    ...fromPatterns,   // pattern-based (lowest confidence)
+    ...fromShopPage,
+    ...fromSites,
+    ...fromWebSearch,
   ];
 
   const sourceBreakdown: Record<string, number> = {};
