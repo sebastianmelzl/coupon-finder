@@ -14,12 +14,8 @@ const RequestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
-
     if (!body) {
-      return NextResponse.json(
-        { error: 'Ungültiger Request-Body.' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'Ungültiger Request-Body.' }, { status: 400 });
     }
 
     const parsed = RequestSchema.safeParse(body);
@@ -35,16 +31,15 @@ export async function POST(request: NextRequest) {
       normalizedUrl = normalizeUrl(parsed.data.url);
     } catch {
       return NextResponse.json(
-        {
-          error:
-            'Ungültige URL. Bitte gib eine vollständige Shop-URL ein, z. B. https://www.beispielshop.de',
-        },
+        { error: 'Ungültige URL. Bitte gib eine vollständige Shop-URL ein, z. B. https://www.beispielshop.de' },
         { status: 400 },
       );
     }
 
     const shop = detectShop(normalizedUrl);
-    const { candidates, usedFallback } = await fetchCoupons(shop.domain);
+    const { candidates, sourceBreakdown, usedFallback, durationMs } =
+      await fetchCoupons(shop.domain, shop.url, shop.shopName);
+
     const deduplicated = deduplicateCoupons(candidates);
     const scored = scoreAndRankAll(deduplicated);
 
@@ -58,16 +53,20 @@ export async function POST(request: NextRequest) {
     };
 
     const bestDeal =
-      scored.find(
-        (c) => c.status === 'confirmed' || c.status === 'unconfirmed',
-      ) ?? null;
+      scored.find((c) => c.status === 'confirmed' || c.status === 'unconfirmed') ?? null;
 
-    const response: SearchResponse & { usedFallback: boolean } = {
+    const response: SearchResponse & {
+      usedFallback: boolean;
+      sourceBreakdown: Record<string, number>;
+      searchDurationMs: number;
+    } = {
       shop,
       summary,
       bestDeal,
       results: scored,
       usedFallback,
+      sourceBreakdown,
+      searchDurationMs: durationMs,
     };
 
     return NextResponse.json(response);

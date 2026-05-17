@@ -1,43 +1,37 @@
 import { CouponCandidate } from '../types';
-import {
-  MOCK_COUPON_DATABASE,
-  GENERIC_FALLBACK_CODES,
-} from '../../data/mock-coupons';
+import { fetchFromRealSources, RealSourceResult } from './realSources';
+import { MOCK_COUPON_DATABASE } from '../../data/mock-coupons';
 
 export interface SourceResult {
   candidates: CouponCandidate[];
-  errors: string[];
+  sourceBreakdown: Record<string, number>;
   usedFallback: boolean;
+  durationMs: number;
 }
 
-export async function fetchCoupons(domain: string): Promise<SourceResult> {
-  // Simulate realistic network latency
-  await new Promise((r) => setTimeout(r, 700 + Math.random() * 500));
+export async function fetchCoupons(
+  domain: string,
+  shopUrl: string,
+  shopName: string,
+): Promise<SourceResult> {
+  // Always run real sources
+  const real: RealSourceResult = await fetchFromRealSources(domain, shopUrl, shopName);
 
-  const key = domain.replace(/^www\./, '');
-  const known = MOCK_COUPON_DATABASE[key];
+  // Supplement with mock data for known shops (ensures demo always has rich data)
+  const domainKey = domain.replace(/^www\./, '');
+  const mockCandidates = MOCK_COUPON_DATABASE[domainKey] ?? [];
 
-  if (known !== undefined && known.length > 0) {
-    return { candidates: known, errors: [], usedFallback: false };
+  const combined = [...real.candidates, ...mockCandidates];
+
+  const breakdown = { ...real.sourceBreakdown };
+  for (const c of mockCandidates) {
+    breakdown[c.sourceName] = (breakdown[c.sourceName] ?? 0) + 1;
   }
 
-  // For unknown shops, return generic codes with low confidence
   return {
-    candidates: GENERIC_FALLBACK_CODES,
-    errors: [],
-    usedFallback: true,
+    candidates: combined,
+    sourceBreakdown: breakdown,
+    usedFallback: real.candidates.length === 0,
+    durationMs: real.durationMs,
   };
-}
-
-/*
- * Stub for future real-source integration.
- * Implement one function per source; each must respect robots.txt and ToS.
- */
-export async function fetchFromPublicSource(
-  _sourceName: string,
-  _domain: string,
-): Promise<CouponCandidate[]> {
-  throw new Error(
-    'Real source integration not implemented. Use fetchCoupons() for mock data.',
-  );
 }

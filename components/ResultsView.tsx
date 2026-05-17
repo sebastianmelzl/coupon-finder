@@ -11,7 +11,11 @@ import TransparencyPanel from './TransparencyPanel';
 import EmptyState from './EmptyState';
 
 interface Props {
-  data: SearchResponse & { usedFallback?: boolean };
+  data: SearchResponse & {
+    usedFallback?: boolean;
+    sourceBreakdown?: Record<string, number>;
+    searchDurationMs?: number;
+  };
 }
 
 function sortCoupons(coupons: CouponAggregate[], sort: SortField): CouponAggregate[] {
@@ -51,7 +55,12 @@ export default function ResultsView({ data }: Props) {
 
   return (
     <div className="mt-6 space-y-4">
-      <ShopInfoCard shop={data.shop} usedFallback={data.usedFallback} />
+      <ShopInfoCard
+        shop={data.shop}
+        usedFallback={data.usedFallback}
+        sourceBreakdown={data.sourceBreakdown}
+        searchDurationMs={data.searchDurationMs}
+      />
       <SummaryStats summary={data.summary} />
 
       {data.bestDeal && <BestDealCard coupon={data.bestDeal} />}
